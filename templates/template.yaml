@@ -1,0 +1,102 @@
+# Unified template for Megatron and NeMo training logs.
+# Each metric can have multiple extraction rules; the first matching rule is used.
+name: default
+
+fields:
+  DIST_INIT:
+    - duration:
+        pattern: 'startup-initialize-megatron\s+\.+:\s+\((\d+\.?\d*),\s*\d+\.?\d*\)'
+        unit: ms
+        use_min: true
+    - timestamp_range:
+        start_pattern: '\[before megatron-init\]\s+datetime:\s+.+'
+        end_pattern: '\[after megatron is initialized\]\s+datetime:\s+.+'
+        timestamp_pattern: '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)'
+        layout: "2006-01-02 15:04:05.999999999"
+    - timestamp_range:
+        start_pattern: '\[NeMo [IW]\s+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*Rank 0 has data parallel group'
+        end_pattern: '\[NeMo [IW]\s+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*Padded vocab_size'
+        timestamp_pattern: '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
+        layout: "2006-01-02 15:04:05"
+
+  DATA_LOADER_INIT:
+    - duration:
+        pattern: 'train/valid/test-data-iterators-setup\s+\.+:\s+\((\d+\.?\d*),\s*\d+\.?\d*\)'
+        unit: ms
+        use_min: true
+    - timestamp_range:
+        start_pattern: '\[after model, optimizer, and learning rate scheduler are built\]\s+datetime:\s+.+'
+        end_pattern: '\[after dataloaders are built\]\s+datetime:\s+.+'
+        timestamp_pattern: '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)'
+        layout: "2006-01-02 15:04:05.999999999"
+
+  CHECKPOINT_LOAD:
+    - duration:
+        pattern: 'load-checkpoint\s+\.+:\s+\((\d+\.?\d*),\s*\d+\.?\d*\)'
+        unit: ms
+        use_min: true
+
+  MODEL_INIT:
+    - timestamp_range:
+        start_pattern: '\[after megatron is initialized\]\s+datetime:\s+(.+)'
+        end_pattern: '\[after model, optimizer, and learning rate scheduler are built\]\s+datetime:\s+(.+)'
+        timestamp_pattern: '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)'
+        layout: "2006-01-02 15:04:05.999999999"
+    - timestamp_range:
+        start_pattern: '\[NeMo [IW]\s+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*Padded vocab_size'
+        end_pattern: '\[NeMo [IW]\s+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*Setting up DistributedDataParallel'
+        timestamp_pattern: '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
+        layout: "2006-01-02 15:04:05"
+
+  OPTIMIZER_INIT:
+    - duration:
+        pattern: 'model-and-optimizer-setup\s+\.+:\s+\((\d+\.?\d*),\s*\d+\.?\d*\)'
+        unit: ms
+        use_min: true
+    - timestamp_range:
+        start_pattern: '\[NeMo [IW]\s+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*Setting up optimizer with config'
+        end_pattern: '\[NeMo [IW]\s+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*Setting ENABLE_EXPERIMENTAL'
+        timestamp_pattern: '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
+        layout: "2006-01-02 15:04:05"
+
+  MODEL_AND_OPTIMIZER_INIT:
+    - duration:
+        pattern: 'model-and-optimizer-setup\s+\.+:\s+\((\d+\.?\d*),\s*\d+\.?\d*\)'
+        unit: ms
+        use_min: true
+
+  TRAINING_SINGLE_ITERATION:
+    - duration:
+        pattern: 'elapsed time per iteration \(ms\):\s+(\d+\.?\d*)'
+        unit: ms
+        aggregate: "avg"
+    - duration:
+        pattern: 'train_step_timing in s:\s+(\d+\.?\d*)'
+        unit: s
+        aggregate: "avg"
+
+  TRAINING_SINGLE_ITERATION_FIRST:
+    - duration:
+        pattern: 'train_step_timing in s:\s+(\d+\.?\d*)'
+        unit: s
+        aggregate: "first"
+
+  CHECKPOINT_SAVE_SYNC:
+    - duration:
+        pattern: 'save-checkpoint\s+\.+:\s+\((\d+\.?\d*),\s*\d+\.?\d*\)'
+        unit: ms
+        use_min: true
+        aggregate: "last"
+
+  TIME_TO_FIRST_ITERATION:
+    - timestamp_range:
+        start_pattern: '\[NeMo [IW]\s+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*Rank 0 has data parallel group'
+        end_pattern: '\[NeMo [IW]\s+\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.*Copying Trainer'
+        timestamp_pattern: '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'
+        layout: "2006-01-02 15:04:05"
+
+  TFLOPS_PER_GPU:
+    - duration:
+        pattern: 'TFLOPS_per_GPU:\s+(\d+\.?\d*)'
+        unit: raw
+        aggregate: "avg"
